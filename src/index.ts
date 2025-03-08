@@ -59,14 +59,6 @@ export function apply(ctx: Context, config: Config) {
   initPlayerTables()
   initRsEventTables()
 
-  //权限管理
-  ctx.permissions.provide('authority:2', async (name, session) => {
-    return session.onebot?.sender?.role === 'owner' || session.onebot?.sender?.role === 'admin'
-  })
-  ctx.permissions.provide('authority:2', async (name, session) => {
-    return config.adminList.includes(session.userId)
-  })
-
   function initPlayerTables() {
     // 初始化表players
     ctx.model.extend('players', {
@@ -193,10 +185,6 @@ export function apply(ctx: Context, config: Config) {
 
     console.log(`\n${session.userId}: ${session.content}`)
 
-    // //骚话模块
-    // let isToSaohua = (Math.random() >= 0.95)
-    // if (isToSaohua) saohuaTalk(session)
-
   })
 
   //加入三人组队 D<7-12>
@@ -206,7 +194,7 @@ export function apply(ctx: Context, config: Config) {
     .action(async ({ session }, arg) => {
       let isInit = await isInitialized(session)
       if (!isInit) {
-        session.send(`请使用CSH (qq号)初始化`)
+        
         return
       }
       if (isValidDrsNum(+arg)) {
@@ -223,7 +211,7 @@ export function apply(ctx: Context, config: Config) {
     .action(async ({ session }, arg) => {
       let isInit = await isInitialized(session)
       if (!isInit) {
-        session.send(`请使用CSH (qq号)初始化`)
+        
         return
       }
       if (isValidDrsNum(+arg)) {
@@ -258,7 +246,7 @@ export function apply(ctx: Context, config: Config) {
       let isInit = await isInitialized(session, qqid)
 
       console.log(`${await getQQid(session)}: 试图查询${qqid}信息`)
-      if (!qqid || !isInit) session.send('玩家信息未初始化\n请使用CSH 指令自助初始化')
+      if (!qqid || !isInit) session.send('玩家: 场次: 科技: 集团:')
       else session.send(await formatted_playerdata(session, qqid))
     })
 
@@ -460,7 +448,7 @@ export function apply(ctx: Context, config: Config) {
 
   async function formatted_playerdata(session: Session, playerId: string): Promise<string> {
     let isInit = await isInitialized(session, playerId)
-    if (!isInit) return '玩家信息未初始化\n请使用CSH 指令自助初始化'
+    if (!isInit) return '玩家信息未初始化'
     return `${((!session.onebot) ? '-\n' : '')}玩家: ${await getUserName(session, playerId)}\n集团: ${await getGroup(playerId)}\n车牌: D${await getLicence(playerId)}\n场数: ${await getPlayRoutes(playerId)}\n科技: ${await getTech(playerId)}\nQ Q: ${await getQQid(session, playerId)}`
   }
 

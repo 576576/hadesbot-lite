@@ -1,6 +1,6 @@
 # 巨蛇座星雲机器人 koishi-plugin-hadesbot-lite
 
-[![npm](https://img.shields.io/npm/v/koishi-plugin-hadesstar-bot?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-hadesstar-bot)
+[![npm](https://img.shields.io/npm/v/koishi-plugin-hadesbot-lite?style=flat-square)](https://www.npmjs.com/package/koishi-plugin-hadesbot-lite)
 
 hadesbot-lite是一个简易的冥王星bot,着重于给中小集团玩家提供游戏便利.
 
