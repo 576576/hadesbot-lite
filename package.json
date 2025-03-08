@@ -1,5 +1,5 @@
 {
-  "name": "koishi-plugin-hadesstar-bot",
+  "name": "koishi-plugin-hadesbot-lite",
   "version": "3.5.5",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -11,15 +11,15 @@
     "dist"
   ],
   "license": "MIT",
-  "homepage": "https://github.com/576576/hadesstar-bot",
+  "homepage": "https://github.com/576576/hadesbot-lite",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/576576/hadesstar-bot"
+    "url": "git+https://github.com/576576/hadesbot-lite"
   },
   "koishi": {
     "description": {
       "en": "manage HadesStar drs lines and rs events",
-      "zh": "仙女座星雲红星/红活bot的ts实现"
+      "zh": "一个服务中小集团玩家的冥王星bot"
     },
     "preview": true,
     "browser": true,
