@@ -2,7 +2,7 @@ import { Context, Schema, Session, Tables, $, FlatPick } from 'koishi'
 import { } from 'koishi-plugin-adapter-onebot'
 import { } from '@koishijs/plugin-adapter-qq'
 
-export const name = 'hadesstar-bot'
+export const name = 'hadesbot-lite'
 export const inject = ['database']
 
 export interface Config {
