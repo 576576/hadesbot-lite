@@ -195,99 +195,11 @@ export function apply(ctx: Context, config: Config) {
 
     console.log(`\n${session.userId}: ${session.content}`)
 
-    //骚话模块
-    let isToSaohua = (Math.random() >= 0.95)
-    if (isToSaohua) saohuaTalk(session)
+    // //骚话模块
+    // let isToSaohua = (Math.random() >= 0.95)
+    // if (isToSaohua) saohuaTalk(session)
 
   })
-
-  //重置 CXHX 管理指令
-  ctx.command('CZHX', '重置所有玩家数据')
-    .action(async ({ session }) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      // 重置players及dlines
-      resetATable('players')
-      resetATable('dlines')
-      initPlayerTables()
-      session.send('已重置所有玩家数据')
-    })
-
-  ctx.command('CZ <userId>', '重置单个玩家数据')
-    .action(async ({ session }, userId) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      let qqid = await getQQid(session, userId)
-      if (!qqid) {
-        session.send('未找到该玩家')
-        return
-      }
-      await ctx.database.remove('dlines', { qid: qqid })
-      await ctx.database.remove('elines', { qid: qqid })
-      await ctx.database.remove('erank', { qid: qqid })
-      session.send('已重置一名玩家数据')
-    })
-
-  //调试 ts 群主及代理首席指令
-  ctx.command('ts', '调试数据表')
-    .action(async ({ session }) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      console.clear()
-      console.log('\n\n')
-      let tsTables = ['players', 'dlines', 'elines', 'erank']
-      for (const tsTable of tsTables) {
-        console.log(`${tsTable}数据如下:\n——————————\n`)
-        console.log(await ctx.database.get(tsTable as any, {}))
-      }
-    })
-
-  //测试 cs 管理指令
-  ctx.command('cs', '')
-    .action(async ({ session }) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      await session.sendQueued('ok')
-      console.log(await showAllLines(session))
-    })
-
-  //初始化 CSH <qid> [openId]
-  ctx.command('CSH <qid> ', '初始化玩家数据')
-    .action(async ({ session }, qid, openId?) => {
-      if (!qid || isNaN(+qid)) {
-        session.send('初始化失败,请输入玩家id')
-        return
-      }
-      if (!!openId && !isAdmin(session)) {
-        session.send('无管理权限,无法初始化他人')
-        return
-      }
-      if (!openId) openId = session.userId
-      console.log(`${openId}: 绑定了${qid}`)
-      await ctx.database.upsert('players', () => [{ qid: qid, openId: openId, cachedName: qid }])
-      session.send(`已进行初始化\n请使用LR名字 LR集团 LR科技录入信息`)
-    })
-
-  //引导上牌
-  ctx.command('D6')
-    .alias('K6').alias('HS6')
-    .action(async ({ session }) => {
-      let isInit = await isInitialized(session)
-      if (!isInit) {
-        session.send(`请使用CSH (qq号)自助初始化,或附带以下信息联系管理💦\n${session.userId}`)
-        return
-      }
-      session.send('暗红巨星的最低等级为7哦💦')
-
-    })
 
   //加入三人组队 D<7-12>
   ctx.command('D <arg>')
@@ -301,10 +213,6 @@ export function apply(ctx: Context, config: Config) {
       }
       if (isValidDrsNum(+arg)) {
         await join_drs(session, `D${arg}`)
-        return
-      }
-      if (arg == '6') {
-        session.execute('D6')
         return
       }
       session.send('请输入正确队列数字7-12')
@@ -322,27 +230,6 @@ export function apply(ctx: Context, config: Config) {
       }
       if (isValidDrsNum(+arg)) {
         await join_drs(session, `K${arg}`)
-        return
-      }
-      session.send('请输入正确队列数字7-12')
-    })
-
-  //加入单人红活 HS<7-12>
-  ctx.command('HS <arg>')
-    .alias('HS7', { args: ['7'] }).alias('HS8', { args: ['8'] }).alias('HS9', { args: ['9'] })
-    .alias('HS10', { args: ['10'] }).alias('HS11', { args: ['11'] }).alias('HS12', { args: ['12'] })
-    .action(async ({ session }, arg) => {
-      let isInit = await isInitialized(session)
-      if (!isInit) {
-        session.send(`请使用CSH (qq号)自助初始化,或附带以下信息联系管理💦\n${session.userId}`)
-        return
-      }
-      if (!rs_event_status) {
-        session.send('红活未开启')
-        return
-      }
-      if (isValidDrsNum(+arg)) {
-        await join_rs_event(session, `HS${arg}`)
         return
       }
       session.send('请输入正确队列数字7-12')
@@ -377,30 +264,7 @@ export function apply(ctx: Context, config: Config) {
       else session.send(await formatted_playerdata(session, qqid))
     })
 
-  //更新信息 LR[科技/集团/名字]
-  ctx.command('LR科技 <techString> [playerId]', 'LR 创0富0延0强0 11451')
-    .alias('LR')
-    .action(async ({ session }, techString, playerId?) => {
-      if (playerId != undefined && !isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      let qqid = await getQQid(session, playerId, true)
-      if (!qqid) return
-
-      if (techString == undefined) {
-        session.send('请录入正确科技格式\nLR科技 创1富2延3强4')
-        return
-      }
-      let techs_in: number[] = validateTechs(techString)
-      if (techs_in) {
-        await ctx.database.upsert('players', () => [{ qid: qqid, techs: techs_in }])
-        await session.send(`已录入${await getTech(qqid)}`)
-      }
-      else {
-        await session.send('请录入正确科技格式\n例: LR科技 创1富2延3强4')
-      }
-    })
+  //更新信息 LR名字
   ctx.command('LR名字 <nick> [playerId]')
     .alias('LR账号')
     .action(async ({ session }, nick, playerId?) => {
@@ -420,159 +284,6 @@ export function apply(ctx: Context, config: Config) {
         await session.send(`已录入名字 ${await getUserName(session, qqid)}`)
       }
     })
-  ctx.command('LR集团 <playerGroup> [playerId]', 'LR集团 巨蛇座星雲')
-    .alias('LR常驻集团')
-    .action(async ({ session }, playerGroup, playerId?) => {
-      if (playerId != undefined && !isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      let qqid = await getQQid(session, playerId, true)
-      if (!qqid) return
-
-      if (!playerGroup) {
-        session.send('请录入正确集团格式\n例: LR集团 第〇序列')
-        return
-      }
-      else {
-        await ctx.database.upsert('players', () => [{ qid: qqid, group: playerGroup }])
-        await session.send(`已录入集团 ${await getGroup(qqid)}`)
-      }
-    })
-
-  //授权车牌 SQ <licence> <playerId> 管理指令
-  ctx.command('SQ <licence> <playerId>', '授权车牌 SQ 114514 D9')
-    .action(async ({ session }, licence, playerId?) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      if (!playerId) {
-        session.send('请录入正确玩家id\n例: SQ D9 114514')
-        return
-      }
-      let qqid = await getQQid(session, playerId, true)
-      let isInit = await isInitialized(session, qqid)
-      if (!qqid || !isInit) return
-
-      let licenceNum = +(licence.substring(1))
-      if (!isValidDrsNum(licenceNum)) {
-        await session.send('请输入正确车牌数字7-12')
-        return
-      }
-      console.log(`${qqid}:正在获取D${licenceNum}车牌`)
-      await ctx.database.upsert('players', () => [{ qid: qqid, licence: licenceNum }])
-      await session.send(`已授予${await getUserName(session, qqid)} D${licenceNum}车牌`)
-    })
-
-  //启动或关闭红活 KGH 管理指令
-  ctx.command('KGH [eState]', '')
-    .alias('KH', { args: ['true'] }).alias('GH', { args: ['false'] })
-    .action(async ({ session }, eState?) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      if (eState != undefined) rs_event_status = !eState
-      if (rs_event_status) await session.send('红星活动已关闭\n输入PH查看排行\n输入CZHH重置红活')
-      else {
-        initRsEventTables()
-        session.send('红星活动已开启\n输入HS7-12开始红活')
-      }
-      rs_event_status = !rs_event_status
-    })
-
-  //生成红活排行并合并转发 PH
-  ctx.command('PH', '查看红活排行')
-    .action(async ({ session }) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      let einfos = (await ctx.database.select('erank').orderBy(row => row.totalScore, 'desc').execute())
-      if (einfos[0] == undefined) {
-        await session.sendQueued('未检索到红活排行信息')
-        return
-      }
-      let dateNow = new Date()
-      let tmp = [`${config.rsEventGroupName} ${dateNow.getFullYear()}.${dateNow.getMonth()}.${dateNow.getDay()}红活榜`], index = 0
-      for (const einfo of einfos) {
-        let index2 = Math.floor(index / 15)
-        tmp[index2] += `\n${++index}. ${await formatted_RsEvent(session, einfo.qid)}`
-      }
-      for (var i of tmp) {
-        await session.sendQueued(i)
-      }
-    })
-
-  ctx.command('LRHH <lineNum> <eventRunScore>')
-    .action(async ({ session }, lineNum, eventRunScore) => {
-      if (!rs_event_status) {
-        session.sendQueued('红活已关闭,禁止录入')
-        return
-      }
-      let runScore = Number.parseInt(eventRunScore)
-      if (isNaN(+lineNum) || isNaN(runScore)) {
-        session.sendQueued('录入失败, 请检查指令\nLRHH 红活号码 红活分数')
-        return
-      }
-      let einfo = await updateEventScore(session, +lineNum, runScore)
-      if (einfo) {
-        let playerName = await getUserName(session, await getQQid(session))
-        session.send(`${playerName} 录入成功\n————————————\n╔ 车队序号: ${+lineNum}\n╠ 当前次数: ${einfo[0]}\n╠ 本轮分数: ${runScore}\n╚ 当前总分: ${einfo[1]}`)
-      }
-    })
-
-  ctx.command('CXHH [userId]')
-    .action(async ({ session }, userId) => {
-      let qqid = await getQQid(session, userId, true)
-      let isInit = await isInitialized(session, qqid)
-      if (!qqid || !isInit) return
-
-      let einfos = (await ctx.database.select('erank').orderBy(row => row.totalScore, 'desc').execute())
-      if (einfos[0] == undefined) {
-        await session.sendQueued('未检索到红活排行信息')
-        return
-      }
-      let eventOrder = einfos.findIndex(rsRank => rsRank.qid == qqid) + 1
-
-      let einfo = await getEventInfo(qqid)
-      session.send(`${((!session.onebot) ? '-\n' : '')}${await getUserName(session, qqid)} 红活状态:\n╔ 当前次数: ${einfo[0]}\n╠ 当前总分: ${einfo[1]}\n╚ 当前排行: ${eventOrder}${rs_event_status ? '' : '\n——————————\n历史数据(红活未开启)'}`)
-    })
-
-  ctx.command('LH <eScore> <userId>', '管理覆盖录入红活')
-    .action(async ({ session }, userId, eScore_in) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      let qqid = await getQQid(session, userId)
-      if (!qqid) return
-
-      let eScore = Number.parseInt(eScore_in)
-      if (isNaN(eScore)) {
-        session.sendQueued('录入失败, 请检查指令\nLH 玩家id 红活分数')
-        return
-      }
-      let lineId = await join_rs_event(session, 'HS6')
-      let einfo = await updateEventScore(session, lineId, eScore, qqid)
-      if (einfo != null) {
-        session.send(`-\n${await getUserName(session, qqid)} 录入红活成功\n————————————\n序号: ${lineId}\n次数: ${einfo[0]}\n总分: ${einfo[1]}`)
-      }
-    })
-
-  ctx.command('CZHH', '重置红活')
-    .action(({ session }) => {
-      if (!isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
-      session.sendQueued(`红活数据已${rs_event_status ? '关闭并' : ''}重置`)
-      rs_event_status = false
-      resetATable('elines')
-      resetATable('erank')
-      initRsEventTables()
-    })
 
   console.clear()
 
@@ -581,26 +292,7 @@ export function apply(ctx: Context, config: Config) {
     if (!qqid) return
 
     console.log(`\n${qqid}: 尝试加入${joinType}队伍`)
-    //检查车牌
     let lineLevel = (+joinType.substring(1))
-
-    let pInfo = await getUserInfos(qqid)
-    if (pInfo.licence < lineLevel) {
-      await session.send(`你未获得${joinType}车牌,请联系管理授权`)
-      return
-    }
-    if (pInfo.cachedName == qqid) {
-      await session.send(`请先录入游戏名\n例: LR名字 高语放歌`)
-      return
-    }
-    if (pInfo.group == '无集团') {
-      await session.send(`请先录入集团\n例: LR集团 巨蛇座`)
-      return
-    }
-    if (pInfo.techs.every((tech) => tech === 0)) {
-      await session.send(`请先录入科技\n例: LR科技 创1富2延3强4`)
-      return
-    }
 
     let foundType = await findDrsFromId(session, qqid)
     if (foundType == 'K0') {
@@ -644,60 +336,6 @@ export function apply(ctx: Context, config: Config) {
       await session.send(`${await getUserName(session, qqid)} 已退出${foundType}队列`)
     }
     else await session.send("你未在队伍中")
-  }
-
-  async function join_rs_event(session: Session, joinType: string): Promise<number> {
-    let qqid = await getQQid(session, undefined, true)
-    if (!qqid) return
-
-    console.log(`\n${qqid}: 尝试加入${joinType}队伍`)
-    //检查车牌
-    let lineLevel = (+joinType.substring(2))
-    let driverLicence = await getLicence(await getQQid(session))
-    if (driverLicence < lineLevel) {
-      await session.send(`你未获得${joinType}车牌,请联系管理授权`)
-      return null
-    }
-    //开始红活单刷
-    let foundType = await findDrsFromId(session, qqid)
-    if (foundType == 'K0') {
-      await ctx.database.create('elines', { qid: qqid })
-      let dinfo = await ctx.database.get('elines', { qid: qqid }, ['lineId', 'runScore'])
-      let lineNum = dinfo.length
-      let lineId = dinfo[dinfo.length - 1].lineId + 1000
-      let eventScore = 0
-      let playerGroup = await getGroup(qqid)
-      if (dinfo) eventScore = +(await getEventInfo(qqid))[1]
-      var drs_message = `${session.onebot ? session.author.nick : ''} 加入${joinType}队伍\n————————————\n╔ [${playerGroup}]\n╠ 红活次数: ${lineNum}\n╠ 红活总分: ${eventScore}\n╚ 车队编号: ${lineId}\n————————————\nLRHH ${lineId} 得分`
-      await session.send(drs_message)
-      return dinfo[dinfo.length - 1].lineId
-    }
-    else {
-      await quit_drs(session)
-      await join_rs_event(session, joinType)
-    }
-  }
-
-  async function updateEventScore(session: Session, lineId_in: number, score: number, playerId?: string): Promise<any[]> {
-    let qqid: string, lineId = lineId_in - 1000
-    if (playerId) qqid = playerId
-    else qqid = await getQQid(session)
-    if (!qqid) return
-
-    let einfo = await ctx.database.get('elines', { qid: qqid, lineId: lineId })
-    if (einfo[0] == undefined && playerId == undefined) {
-      session.sendQueued('你不能录入别人的队列')
-      return null
-    }
-    if (einfo[0].runScore != 0 && playerId == undefined) {
-      session.sendQueued(`队列${lineId}不可重复录入`)
-      return null
-    }
-    await ctx.database.upsert('erank', (row) => [{ qid: qqid, totalRuns: $.add(row.totalRuns, playerId == undefined ? 1 : 0), totalScore: $.add(row.totalScore, score) }])
-    let scoreBefore = einfo[0].runScore
-    await ctx.database.upsert('elines', (row) => [{ qid: qqid, lineId: lineId, runScore: $.add(row.runScore, score) }])
-    let runAfter = (await ctx.database.get('erank', { qid: qqid }))[0].totalRuns
-    return [runAfter, scoreBefore + score]
   }
 
   async function findIdFromDrs(checkType: string): Promise<string[]> {
@@ -754,14 +392,6 @@ export function apply(ctx: Context, config: Config) {
       drs_message += `╔ ${playerName}\n╠ [${playerGroup}] ${playerRoute[targetNum]}\n╚ [${playerTech}]\n`
     }
     return drs_message
-  }
-
-  async function formatted_RsEvent(session: Session, playerId: string, isDetail?: boolean): Promise<string> {
-    let playerName = await getUserName(session, playerId)
-    let playerGroup = await getGroup(playerId)
-    let einfo = await getEventInfo(playerId)
-    return isDetail ? `╔ 名称: ${playerName}\n╠ [${playerGroup}]╠ 场次: ${einfo[0]}\n╚ 总分: ${einfo[1]}` :
-      `${await getUserName(session, playerId)}\n【总分:${einfo[1]} 场次:${einfo[0]}】`
   }
 
   async function showAllLines(session: Session): Promise<string> {
@@ -855,72 +485,16 @@ export function apply(ctx: Context, config: Config) {
   }
 
   async function getQQid(session: Session, userId?: string, noisy?: boolean): Promise<string> {
-    let qqid: string
-    if (!userId) {
-      if (session.onebot) return session.userId
-      else {
-        qqid = await findQQidFromOpenId(session.userId)
-        if (!qqid && noisy) session.send(`请联系管理初始化💦\n${session.userId}`)
-        return qqid
-      }
-    }
-    if (session.onebot) {
-      let match = userId.match(/<at\s+[^>]*id="(\d+)"/)
-      if (match && match[1] != undefined) return match[1]
-      else if (!isNaN(+userId)) return userId
-    }
-    if (!isNaN(+userId)) qqid = await findQQidFromOpenId(await findOpenIdFromQQid(userId))
-    else qqid = await findQQidFromOpenId(userId)
-    if (!qqid && noisy) session.send('玩家信息未初始化\n请使用CSH 指令自助初始化')
-    return qqid
-  }
-
-  async function findOpenIdFromQQid(userId: string): Promise<string> {
-    let dinfo = (await ctx.database.get('players', { qid: userId }, ['openId']))[0]
-    if (!dinfo) return null
-    return dinfo.openId
-  }
-
-  async function findQQidFromOpenId(openId: string): Promise<string> {
-    let dinfo = (await ctx.database.get('players', { openId: openId }, ['qid']))[0]
-    if (!dinfo) return null
-    return dinfo.qid
-  }
-
-  async function isInitialized(session: Session, userId?: string): Promise<boolean> {
-    if (session.onebot) return true
-    let qqid = await getQQid(session, userId)
-    return !!qqid
-  }
-
-  function isAdmin(session: Session): boolean {
-    // return config.adminList.includes(session.userId)
-    return true //暂时关闭权限系统
-  }
-
-  function validateTechs(arg: string): number[] {
-    var result: number[] = []
-    for (const keyword of ['创', '富', '延', '强']) {
-      const match = arg.match(`${keyword}(\\d+)`)
-      if (match && match[1] != undefined && isValidTechNum(+match[1])) {
-        result.push(+match[1]);
-      } else {
-        return null;
-      }
-    }
-    return result;
-  }
-
-  async function saohuaTalk(session: Session) {
-    let saohua = ['大哥你去哪了，我是你的小张飞呀!', '义父你去哪了，我是你的小奉先呀!', '你会.. 陪我打暗蓝么', '悄悄告诉你一个秘密,我会打D12']
-    await session.sendQueued(saohua[Math.floor(Math.random() * saohua.length)])
+    return userId
   }
 }
 
 function isValidDrsNum(drs_num: number): boolean {
   return !isNaN(drs_num) && drs_num >= 7 && drs_num <= 12
 }
-
-function isValidTechNum(techNum: number): boolean {
-  return !isNaN(techNum) && techNum >= 1 && techNum <= 15
+function isAdmin(session: Session): boolean {
+  return true
+}
+function isInitialized(session: Session, playerId?: string): boolean {
+  return true
 }
