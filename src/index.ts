@@ -12,8 +12,6 @@ export interface Config {
 }
 
 export const Config: Schema<Config> = Schema.object({
-  adminList: Schema.array(Schema.string()).description('管理员id列表, 每个群不同'),
-  rsEventGroupName: Schema.string().description('红活榜单使用的集团名').default('巨蛇座星雲'),
   drsWaitTime: Schema.number().description('每个玩家在超时前等待的时间 ms').default(18e5)
 })
 
