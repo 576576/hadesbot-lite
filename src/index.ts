@@ -183,6 +183,8 @@ export function apply(ctx: Context, config: Config) {
   //主监听用户输入
   ctx.on('message', async (session) => {
 
+    let playerName = await getUserName(session)
+    if (!playerName) await ctx.database.upsert('players', () => [{ qid: session.userId, openId: session.userId, cachedName: session.userId }])
     console.log(`\n${session.userId}: ${session.content}`)
 
   })
@@ -192,11 +194,6 @@ export function apply(ctx: Context, config: Config) {
     .alias('D7', { args: ['7'] }).alias('D8', { args: ['8'] }).alias('D9', { args: ['9'] })
     .alias('D10', { args: ['10'] }).alias('D11', { args: ['11'] }).alias('D12', { args: ['12'] })
     .action(async ({ session }, arg) => {
-      let isInit = await isInitialized(session)
-      if (!isInit) {
-        
-        return
-      }
       if (isValidDrsNum(+arg)) {
         await join_drs(session, `D${arg}`)
         return
@@ -209,11 +206,6 @@ export function apply(ctx: Context, config: Config) {
     .alias('K7', { args: ['7'] }).alias('K8', { args: ['8'] }).alias('K9', { args: ['9'] })
     .alias('K10', { args: ['10'] }).alias('K11', { args: ['11'] }).alias('K12', { args: ['12'] })
     .action(async ({ session }, arg) => {
-      let isInit = await isInitialized(session)
-      if (!isInit) {
-        
-        return
-      }
       if (isValidDrsNum(+arg)) {
         await join_drs(session, `K${arg}`)
         return
@@ -250,14 +242,10 @@ export function apply(ctx: Context, config: Config) {
       else session.send(await formatted_playerdata(session, qqid))
     })
 
-  //更新信息 LR名字
-  ctx.command('LR名字 <nick> [playerId]')
+  //更新信息 LR[名字/集团]
+  ctx.command('LR名字 <nick>')
     .alias('LR账号')
     .action(async ({ session }, nick, playerId?) => {
-      if (playerId != undefined && !isAdmin(session)) {
-        session.send('无管理权限')
-        return
-      }
       let qqid = await getQQid(session, playerId, true)
       if (!qqid) return
 
@@ -270,6 +258,21 @@ export function apply(ctx: Context, config: Config) {
         await session.send(`已录入名字 ${await getUserName(session, qqid)}`)
       }
     })
+    ctx.command('LR集团 <playerGroup>', 'LR集团 巨蛇座星雲')
+    .alias('LR常驻集团')
+    .action(async ({ session }, playerGroup, playerId?) => {
+      let qqid = await getQQid(session, playerId, true)
+      if (!qqid) return
+
+      if (!playerGroup) {
+        session.send('请录入正确集团格式\n例: LR集团 第〇序列')
+        return
+      }
+      else {
+        await ctx.database.upsert('players', () => [{ qid: qqid, group: playerGroup }])
+        await session.send(`已录入集团 ${await getGroup(qqid)}`)
+      }
+    })
 
   console.clear()
 
@@ -279,6 +282,7 @@ export function apply(ctx: Context, config: Config) {
 
     console.log(`\n${qqid}: 尝试加入${joinType}队伍`)
     let lineLevel = (+joinType.substring(1))
+    // let pInfo = await getUserInfos(qqid)
 
     let foundType = await findDrsFromId(session, qqid)
     if (foundType == 'K0') {
@@ -372,10 +376,7 @@ export function apply(ctx: Context, config: Config) {
     let drs_message = ''
     for (const playerId of dinfo) {
       let playerName = await getUserName(session, playerId, isTryAt)
-      let playerRoute = await getPlayRoutes(playerId)
-      let playerTech = await getTech(playerId)
-      let playerGroup = await getGroup(playerId)
-      drs_message += `╔ ${playerName}\n╠ [${playerGroup}] ${playerRoute[targetNum]}\n╚ [${playerTech}]\n`
+      drs_message += `》 ${playerName}\n`
     }
     return drs_message
   }
@@ -442,14 +443,16 @@ export function apply(ctx: Context, config: Config) {
     console.log(playerId)
     let qqid = await getQQid(session, playerId)
     if (!qqid) return null
-    let playerName = (await ctx.database.get('players', { qid: playerId }, ['cachedName']))[0].cachedName
+    let dinfo = await ctx.database.get('players', { qid: qqid })
+    if (dinfo[0] == undefined) return null
+    let playerName = dinfo[0].cachedName
     return ((isTryAt ? '@' : '') + playerName)
   }
 
   async function formatted_playerdata(session: Session, playerId: string): Promise<string> {
     let isInit = await isInitialized(session, playerId)
     if (!isInit) return '玩家信息未初始化'
-    return `${((!session.onebot) ? '-\n' : '')}玩家: ${await getUserName(session, playerId)}\n集团: ${await getGroup(playerId)}\n车牌: D${await getLicence(playerId)}\n场数: ${await getPlayRoutes(playerId)}\n科技: ${await getTech(playerId)}\nQ Q: ${await getQQid(session, playerId)}`
+    return `${((!session.onebot) ? '-\n' : '')}玩家: ${await getUserName(session, playerId)}\n集团: ${await getGroup(playerId)}\n车牌: D${await getLicence(playerId)}`
   }
 
   async function drs_timer(session: Session, targetType: string): Promise<string> {
@@ -471,7 +474,8 @@ export function apply(ctx: Context, config: Config) {
   }
 
   async function getQQid(session: Session, userId?: string, noisy?: boolean): Promise<string> {
-    return userId
+    if (userId) return userId
+    return session.userId
   }
 }
 
